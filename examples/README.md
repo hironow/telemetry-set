@@ -17,7 +17,7 @@ This example demonstrates a FastAPI application with comprehensive OpenTelemetry
 
    ```bash
    cd ..
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. Run the FastAPI application:

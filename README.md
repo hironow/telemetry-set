@@ -16,7 +16,7 @@ A complete Docker-based setup for visualizing OpenTelemetry data using Grafana, 
 1. Start the infrastructure:
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. Run the example application:
@@ -187,6 +187,6 @@ export OTEL_EXPORTER_OTLP_ENDPOINT="localhost:4317"
 
 ### No Data in Grafana
 
-1. Check all Docker containers are running: `docker-compose ps`
+1. Check all Docker containers are running: `docker compose ps`
 2. Verify FastAPI app is sending data (check logs)
 3. Wait a few seconds for data to propagate through the pipeline
