@@ -78,3 +78,8 @@ volumes:
   tempo-data:
   loki-data:
   loki-wal:
+
+networks:
+  default:
+    name: shared-otel-net
+    external: true
