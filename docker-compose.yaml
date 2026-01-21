@@ -1,7 +1,7 @@
 services:
   # OpenTelemetry Collector
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.91.0
+    image: otel/opentelemetry-collector-contrib:0.144.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./config/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
@@ -16,47 +16,59 @@ services:
       - tempo
       - prometheus
 
+  # Tempo init service (handles volume permissions)
+  tempo-init:
+    image: grafana/tempo:2.9.0
+    user: root
+    entrypoint:
+      - "chown"
+      - "10001:10001"
+      - "/var/tempo"
+    volumes:
+      - tempo-data:/var/tempo
+
   # Tempo for traces
   tempo:
-    image: grafana/tempo:2.3.1
+    image: grafana/tempo:2.9.0
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./config/tempo/tempo-config.yaml:/etc/tempo.yaml
-      - tempo-data:/tmp/tempo
+      - tempo-data:/var/tempo
     ports:
       - "3200:3200"   # tempo
       - "14268:14268" # jaeger ingest
+    depends_on:
+      tempo-init:
+        condition: service_completed_successfully
 
   # Prometheus for metrics
   prometheus:
-    image: prom/prometheus:v2.48.0
+    image: prom/prometheus:v3.9.1
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
     volumes:
       - ./config/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     ports:
       - "9091:9090"
 
-  # Loki for logs
+  # Loki for logs (uses /tmp/loki internally, no external volume needed)
   loki:
-    image: grafana/loki:2.9.3
-    user: "10001:10001"
+    image: grafana/loki:3.5.0
     command: -config.file=/etc/loki/loki-config.yaml
     volumes:
       - ./config/loki/loki-config.yaml:/etc/loki/loki-config.yaml
-      - loki-data:/loki
-      - loki-wal:/loki/wal
     ports:
       - "3100:3100"
 
   # Grafana
   grafana:
-    image: grafana/grafana:10.2.3
+    image: grafana/grafana:12.3.1
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -76,8 +88,6 @@ volumes:
   grafana-data:
   prometheus-data:
   tempo-data:
-  loki-data:
-  loki-wal:
 
 networks:
   default:

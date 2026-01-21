@@ -18,8 +18,8 @@ scrape_configs:
     metrics_path: /metrics
     scrape_interval: 30s
 
-  - job_name: 'elasticsearch'
-    static_configs:
-      - targets: ['elasticsearch:9200']
-    metrics_path: /_prometheus/metrics
-    scrape_interval: 30s
+  # Elasticsearch requires elasticsearch_exporter for Prometheus metrics
+  # See: https://github.com/prometheus-community/elasticsearch_exporter
+  # - job_name: 'elasticsearch'
+  #   static_configs:
+  #     - targets: ['elasticsearch:9200']

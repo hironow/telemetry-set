@@ -10,14 +10,20 @@ receivers:
       scrape_configs:
         - job_name: 'qdrant'
           static_configs:
-            - targets: ['qdrant:6333']
+            - targets: ['qdrant-emulator:6333']
           metrics_path: /metrics
           scrape_interval: 30s
         - job_name: 'elasticsearch'
           static_configs:
-            - targets: ['elasticsearch:9200']
-          metrics_path: /_prometheus/metrics
+            - targets: ['elasticsearch-exporter:9114']
+          metrics_path: /metrics
           scrape_interval: 30s
+        - job_name: 'postgres'
+          static_configs:
+            - targets: ['postgres-exporter:9187']
+          metrics_path: /metrics
+          scrape_interval: 30s
+        # Neo4j: Community Edition doesn't support Prometheus metrics (Enterprise only)
 
 exporters:
   prometheus:
@@ -30,8 +36,8 @@ exporters:
     tls:
       insecure: true
 
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
     tls:
       insecure: true
 
@@ -57,4 +63,4 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [loki]
+      exporters: [otlphttp/loki]

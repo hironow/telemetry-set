@@ -61,6 +61,11 @@ FastAPI App → OTel Collector → ┌─ Prometheus (Metrics)
                                └─ Loki (Logs)
                                      ↓
                                  Grafana
+                                     ↑
+Emulator Stack ──────────────────────┘
+  ├─ Qdrant (native /metrics)
+  ├─ elasticsearch-exporter
+  └─ postgres-exporter
 ```
 
 📊 [Detailed Architecture Diagram](docs/architecture-diagram.md)
@@ -170,6 +175,63 @@ FastAPI App → OTel Collector → ┌─ Prometheus (Metrics)
   - Request duration percentiles (p95, p99)
   - Recent traces table
   - Application logs viewer
+
+## Emulator Metrics Integration
+
+The telemetry stack scrapes metrics from the `emulator` stack via the shared Docker network `shared-otel-net`.
+
+### Scraped Services
+
+| Service | Target | Metrics Path | Scrape Interval |
+|---------|--------|--------------|-----------------|
+| Qdrant | `qdrant-emulator:6333` | `/metrics` | 30s |
+| Elasticsearch | `elasticsearch-exporter:9114` | `/metrics` | 30s |
+| PostgreSQL | `postgres-exporter:9187` | `/metrics` | 30s |
+
+> Note: Neo4j Community Edition does not support Prometheus metrics (Enterprise only).
+
+### Configuration
+
+Scrape targets are defined in `config/otel/otel-collector-config.yaml`:
+
+```yaml
+prometheus:
+  config:
+    scrape_configs:
+      - job_name: 'qdrant'
+        static_configs:
+          - targets: ['qdrant-emulator:6333']
+      - job_name: 'elasticsearch'
+        static_configs:
+          - targets: ['elasticsearch-exporter:9114']
+      - job_name: 'postgres'
+        static_configs:
+          - targets: ['postgres-exporter:9187']
+```
+
+### Grafana Dashboard
+
+Pre-configured dashboard: **Emulator Metrics** (`grafana/dashboards/emulator-metrics.json`)
+
+Panels include:
+- **Qdrant**: Collections, vectors, search time
+- **Elasticsearch**: Cluster health, nodes, JVM memory, document count
+- **PostgreSQL**: Status, database size, active connections
+
+### Network Setup
+
+Both stacks must share the same Docker network:
+
+```bash
+# Create shared network (if not exists)
+docker network create shared-otel-net
+
+# Start emulator stack
+cd /path/to/emulator && docker compose up -d
+
+# Start telemetry stack
+cd /path/to/telemetry && docker compose up -d
+```
 
 ## Troubleshooting
 
